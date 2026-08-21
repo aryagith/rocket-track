@@ -1,0 +1,22 @@
+# Default rocket-track settings (relative paths — no machine-specific absolutes)
+weights: weights/best.pt
+onnx: weights/best.onnx
+data: data.yaml
+imgsz: 640
+conf: 0.25
+iou: 0.45
+device: cpu
+tracker: sort
+sort:
+  max_age: 30
+  min_hits: 3
+  iou_threshold: 0.3
+bench:
+  warmup: 30
+  max_frames: 120
+  backends:
+    - pytorch_cpu
+    - pytorch_cuda
+    - onnx_cpu
+    - onnx_cuda
+    - tensorrt
