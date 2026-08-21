@@ -2,6 +2,8 @@
 
 Detect and track rockets in launch video using a domain-tuned YOLO detector, a from-scratch SORT tracker, and honest PyTorch / ONNX / (TensorRT) latency benchmarks on an RTX 4060.
 
+![SORT track still](assets/results/demo_track_still.jpg)
+
 ![Training results](runs/train/rocket_detector/results.png)
 
 ## Problem
@@ -32,10 +34,13 @@ CUDA (when available):
 python -m scripts.run_track --source testing_media/testvid.mp4 --weights weights/best.pt --tracker sort --device cuda --out outputs/track
 ```
 
-Tests:
+`--device auto` (default for `run_track`) selects CUDA when PyTorch sees a GPU.
+
+Tests / smoke:
 
 ```bash
 python -m pytest tests -q
+python -m scripts.smoke_check --track --device cpu
 ```
 
 ## Detector weights
@@ -59,6 +64,8 @@ Canonical layout (unchanged from the Roboflow export):
 - `data.yaml` — single class `Rocket`
 - `train/`, `valid/`, `test/` — YOLO labels are in git; **full images are gitignored** (~70GB locally)
 
+Full download steps: [`docs/DATASET.md`](docs/DATASET.md).
+
 Roboflow (from `data.yaml`):
 
 - workspace: `arbalesttest`
@@ -81,7 +88,7 @@ From `runs/train/rocket_detector/results.csv` (not invented):
 | Precision | 0.928 |
 | Recall | 0.790 |
 
-See also `runs/train/rocket_detector/results.png` and PR / F1 curves in that folder.
+See also `runs/train/rocket_detector/results.png` and PR / F1 curves in that folder. Detector val preview: [`assets/results/demo_detect_val.jpg`](assets/results/demo_detect_val.jpg).
 
 ## Tracking
 
@@ -127,9 +134,10 @@ Details: [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 ## CLI reference
 
 ```bash
-python -m scripts.run_track --source <path> --weights weights/best.pt --tracker sort --device cpu|cuda --out outputs/track
+python -m scripts.run_track --source <path> --weights weights/best.pt --tracker sort --device auto|cpu|cuda --out outputs/track
 python -m scripts.run_bench --source <path> --weights weights/best.pt --out assets/results/
 python -m scripts.export_onnx --weights weights/best.pt --out weights/best.onnx
+python -m scripts.smoke_check --track
 python -m scripts.train --data data.yaml   # full retrain; usually unnecessary
 ```
 
