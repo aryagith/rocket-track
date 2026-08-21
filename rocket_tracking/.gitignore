@@ -25,22 +25,23 @@ train/labels.cache
 valid/labels.cache
 test/labels.cache
 
-# Full Roboflow image dumps (labels kept; see README for re-download)
-train/images/
-valid/images/
-test/images/
+# Full Roboflow image dumps (labels kept; see docs/DATASET.md)
+train/images/*
+!train/images/README.md
+valid/images/*
+!valid/images/README.md
+test/images/*
+!test/images/README.md
 
 # Base YOLO checkpoints (downloaded by ultralytics on demand)
 yolov8n.pt
 yolov8s.pt
 yolo11n.pt
 
-# Large training checkpoints (product weights live under weights/)
-runs/train/**/weights/epoch*.pt
-runs/train/**/weights/last.pt
-# Prefer weights/best.pt mirror; ignore duplicate under runs if desired:
-# runs/train/**/weights/best.pt
-# runs/train/**/weights/best.onnx
+# Large / duplicate training artifacts (product weights live under weights/)
+runs/train/**/weights/
+runs/train/**/train_batch*.jpg
+runs/train/rocket_yolov82/
 
 # OS / IDE
 .DS_Store
