@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rocket-track"
+version = "0.1.0"
+description = "Detect, track, and benchmark rockets with domain YOLO + in-repo SORT"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Aarya" }]
+dependencies = [
+  "ultralytics>=8.3.0,<9",
+  "torch>=2.1.0",
+  "torchvision>=0.16.0",
+  "opencv-python>=4.8.0",
+  "numpy>=1.24.0",
+  "scipy>=1.11.0",
+  "matplotlib>=3.7.0",
+  "onnx>=1.14.0",
+  "onnxruntime>=1.16.0",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
