@@ -13,7 +13,6 @@ Hobby and club launch footage is messy: small rockets, motion blur, bright sky, 
 ## Quickstart
 
 ```bash
-cd rocket_tracking
 python -m venv .venv
 # Windows:
 .venv\Scripts\activate
@@ -144,18 +143,18 @@ python -m scripts.train --data data.yaml   # full retrain; usually unnecessary
 ## Layout
 
 ```
-rocket_tracking/
-  data.yaml train/ valid/ test/   # labels in git; images local/Roboflow
-  weights/best.pt|.onnx
-  src/rocket_track/               # detect, SORT, pipeline, backends, bench
-  scripts/                        # CLIs
-  assets/sample/ results/
-  configs/default.yaml
-  docs/
-  tests/
-  legacy/                         # old one-off scripts
-  testing_media/
-  runs/train/rocket_detector/     # curves / metrics plots
+.
+├── data.yaml train/ valid/ test/   # labels in git; images local/Roboflow
+├── weights/best.pt|.onnx
+├── src/rocket_track/               # detect, SORT, pipeline, backends, bench
+├── scripts/                        # CLIs
+├── assets/sample/ results/
+├── configs/default.yaml
+├── docs/
+├── tests/
+├── legacy/                         # old one-off scripts
+├── testing_media/
+└── runs/train/rocket_detector/     # curves / metrics plots
 ```
 
 ## Method (short)

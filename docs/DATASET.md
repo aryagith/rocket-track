@@ -24,9 +24,9 @@ From `data.yaml`:
 Download/export, then extract so files land at:
 
 ```
-rocket_tracking/train/images/*.jpg
-rocket_tracking/valid/images/*.jpg
-rocket_tracking/test/images/*.jpg
+train/images/*.jpg
+valid/images/*.jpg
+test/images/*.jpg
 ```
 
 Keep existing label folders. If Roboflow renames files, re-export with the same version used for training or regenerate labels.
