@@ -101,17 +101,19 @@ python -m scripts.run_bench --source testing_media/testvid.mp4 --weights weights
 
 Writes `assets/results/bench_<platform_id>.{csv,md,png}`.
 
-### Author machine (template — fill from latest `run_bench`)
+### Author machine — `windows-rtx4060-8gb-amd64`
 
-Platform id example: `windows-rtx4060-8gb`.
+NVIDIA GeForce RTX 4060 Laptop GPU (8GB), Windows. Source: `testing_media/testvid.mp4`, `imgsz=640`, warmup=10, timed frames=40.
 
-| Backend | Mean (ms) | Median (ms) | P95 (ms) | FPS | Peak VRAM | Notes |
-|---------|----------:|------------:|---------:|----:|----------:|-------|
-| pytorch_cpu | — | — | — | — | N/A | run locally |
-| pytorch_cuda | — | — | — | — | — | RTX 4060 8GB |
-| onnx_cpu | — | — | — | — | N/A | |
-| onnx_cuda | — | — | — | — | — | N/A if CUDA EP missing |
+| Backend | Mean (ms) | Median (ms) | P95 (ms) | FPS | Peak VRAM (MB) | Notes |
+|---------|----------:|------------:|---------:|----:|---------------:|-------|
+| pytorch_cpu | 110.75 | 110.20 | 116.46 | 9.03 | N/A | |
+| pytorch_cuda | 25.08 | 24.82 | 31.71 | 39.88 | 78.4 | |
+| onnx_cpu | 144.33 | 139.14 | 185.45 | 6.93 | N/A | |
+| onnx_cuda | — | — | — | — | N/A | CUDA EP not installed |
 | tensorrt | — | — | — | — | N/A | Engine not packaged |
+
+Artifacts: [`assets/results/bench_windows-rtx4060-8gb-amd64.md`](assets/results/bench_windows-rtx4060-8gb-amd64.md) · [CSV](assets/results/bench_windows-rtx4060-8gb-amd64.csv) · [chart](assets/results/bench_windows-rtx4060-8gb-amd64.png)
 
 Details: [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 

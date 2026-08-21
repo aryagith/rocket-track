@@ -1,0 +1,6 @@
+backend,n_frames,warmup,mean_ms,median_ms,p95_ms,fps,peak_vram_mb,notes
+pytorch_cpu,40,10,110.74578750121873,110.19605000183219,116.46236499509541,9.02968882666526,,
+pytorch_cuda,40,10,25.076072499723523,24.819899997964967,31.71232998938649,39.87865324647731,78.44873046875,
+onnx_cpu,40,10,144.3335149986524,139.13959999626968,185.45136499742506,6.928397746076763,,
+onnx_cuda,0,10,nan,nan,nan,nan,,N/A — CUDA EP not installed
+tensorrt,0,10,nan,nan,nan,nan,,N/A — TensorRT engine not packaged; skip unless you export format=engine locally

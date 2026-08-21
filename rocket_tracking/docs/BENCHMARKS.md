@@ -26,4 +26,4 @@ python -m scripts.run_bench --source testing_media/testvid.mp4 --weights weights
 - Do not mix cloud GPU numbers with laptop RTX 4060 numbers in one table
 - ONNX CUDA EP and TensorRT require extra installs; absence is expected on many clones
 
-See the README results table for the author's RTX 4060 8GB numbers once `run_bench` has been executed in this checkout.
+Author checkout artifact: `assets/results/bench_windows-rtx4060-8gb-amd64.*` (RTX 4060 Laptop 8GB). Re-run on your machine before comparing.
