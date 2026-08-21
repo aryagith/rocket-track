@@ -31,3 +31,30 @@ def default_source() -> Path:
         if cand.exists():
             return cand
     return ROOT / "assets" / "sample"
+
+
+def default_onnx() -> Path:
+    candidates = [
+        ROOT / "weights" / "best.onnx",
+        ROOT / "runs" / "train" / "rocket_detector" / "weights" / "best.onnx",
+        default_weights().with_suffix(".onnx"),
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    return candidates[0]
+
+
+def resolve_device(device: str) -> str:
+    """Map CLI device aliases. ``auto`` picks CUDA when available."""
+    device = (device or "cpu").strip().lower()
+    if device in {"cuda", "gpu"}:
+        return "0"
+    if device == "auto":
+        try:
+            import torch
+
+            return "0" if torch.cuda.is_available() else "cpu"
+        except Exception:  # noqa: BLE001
+            return "cpu"
+    return device

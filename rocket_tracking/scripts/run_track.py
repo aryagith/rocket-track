@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from scripts._paths import ROOT, default_source, default_weights
+from scripts._paths import ROOT, default_source, default_weights, resolve_device
 
 # Ensure package import works as `python -m scripts.run_track`
 from rocket_track.pipeline import TrackPipeline
@@ -16,7 +16,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--source", type=Path, default=default_source(), help="Image, video, or directory")
     p.add_argument("--weights", type=Path, default=default_weights(), help="YOLO .pt weights")
     p.add_argument("--tracker", choices=["sort", "bytetrack"], default="sort")
-    p.add_argument("--device", default="cpu", help="cpu | 0 | cuda")
+    p.add_argument("--device", default="auto", help="auto | cpu | 0 | cuda")
     p.add_argument("--imgsz", type=int, default=640)
     p.add_argument("--conf", type=float, default=0.25)
     p.add_argument("--iou", type=float, default=0.45)
@@ -29,9 +29,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    device = args.device
-    if device == "cuda":
-        device = "0"
+    device = resolve_device(args.device)
     pipe = TrackPipeline(
         weights=args.weights,
         device=device,

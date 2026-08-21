@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from scripts._paths import ROOT, default_source, default_weights
+from scripts._paths import ROOT, default_onnx, default_source, default_weights
 from rocket_track.bench import default_platform_id, run_bench
 
 
@@ -24,7 +24,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--conf", type=float, default=0.25)
     p.add_argument("--iou", type=float, default=0.45)
     p.add_argument("--platform-id", default=None)
-    p.add_argument("--onnx", type=Path, default=ROOT / "weights" / "best.onnx")
+    p.add_argument("--onnx", type=Path, default=default_onnx())
     p.add_argument("--out", type=Path, default=ROOT / "assets" / "results")
     return p.parse_args()
 
