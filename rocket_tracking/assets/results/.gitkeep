@@ -1,0 +1,2 @@
+# Benchmark outputs (CSV / MD / PNG) are written here by:
+#   python -m scripts.run_bench
