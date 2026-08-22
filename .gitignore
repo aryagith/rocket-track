@@ -17,6 +17,8 @@ _push_tmp.bat
 _make_demos.py
 _run_continue.bat
 _pick_demo.py
+_run_track_launch.bat
+testing_media/rocket launch.mov
 
 # Python
 __pycache__/
