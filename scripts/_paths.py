@@ -11,15 +11,20 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 
-def default_weights() -> Path:
-    candidates = [
+def default_weights(prefer_nano: bool = False) -> Path:
+    nano = [
+        ROOT / "weights" / "best_n.pt",
+        ROOT / "runs" / "train" / "rocket_detector_n" / "weights" / "best.pt",
+    ]
+    standard = [
         ROOT / "weights" / "best.pt",
         ROOT / "runs" / "train" / "rocket_detector" / "weights" / "best.pt",
     ]
+    candidates = (nano + standard) if prefer_nano else (standard + nano)
     for c in candidates:
         if c.exists():
             return c
-    return candidates[0]
+    return (nano if prefer_nano else standard)[0]
 
 
 def default_source() -> Path:

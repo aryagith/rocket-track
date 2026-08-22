@@ -38,6 +38,7 @@ class YOLODetector:
         half: Optional[bool] = None,
     ):
         from ultralytics import YOLO
+        import torch
 
         self.weights = Path(weights)
         if not self.weights.exists():
@@ -46,6 +47,9 @@ class YOLODetector:
                 "Place best.pt under weights/ or runs/train/rocket_detector/weights/, "
                 "or pass --weights explicitly. See README for Release / training notes."
             )
+        if torch.cuda.is_available() and str(device) not in {"cpu", "CPU"}:
+            torch.backends.cudnn.benchmark = True
+
         self.model = YOLO(str(self.weights))
         try:
             self.model.fuse()
@@ -58,6 +62,15 @@ class YOLODetector:
         if half is None:
             half = str(device) not in {"cpu", "CPU"}
         self.half = bool(half) and str(device) not in {"cpu", "CPU"}
+        self._warmed = False
+
+    def warmup(self, shape: tuple[int, int, int] = (720, 1280, 3)) -> None:
+        """Run one dummy forward so later frames skip init overhead."""
+        if self._warmed:
+            return
+        blank = np.zeros(shape, dtype=np.uint8)
+        self.predict(blank)
+        self._warmed = True
 
     def predict(self, image_bgr: np.ndarray) -> List[Detection]:
         results = self.model.predict(

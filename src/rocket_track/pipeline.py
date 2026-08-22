@@ -105,6 +105,10 @@ class TrackPipeline:
         self.detector = YOLODetector(
             weights, device=device, imgsz=imgsz, conf=conf, iou=iou, half=half
         )
+        try:
+            self.detector.warmup()
+        except Exception:  # noqa: BLE001
+            pass
         self.sort = SortTracker(max_age=max_age, min_hits=min_hits, iou_threshold=track_iou)
         self._bt_model = None
         self._bt_cfg = "bytetrack.yaml"
