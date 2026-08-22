@@ -1,3 +1,5 @@
-weights,device,imgsz,n_frames,with_tracks,e2e_fps,infer_fps
-best.pt,0,512,814,375,42.23,47.61
-best_n.pt,0,512,814,290,44.6,48.96
+weights,device,imgsz,n_frames,with_tracks,e2e_fps,infer_fps,notes
+best.engine,0,512,814,229,90.01,105.33,trt_fp16_no_save
+best_n.engine,0,512,814,168,98.44,117.96,trt_fp16_no_save
+best.pt,0,512,814,239,46.73,52.38,pytorch_fp16_no_save
+best_n.pt,0,512,814,290,44.6,48.96,pytorch_fp16_compare_min_hits1

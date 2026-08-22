@@ -30,21 +30,23 @@ Open `outputs/tracked/rocket_launch_tracked.mp4`.
 
 | Weights | Mode | Profile | e2e FPS | Infer FPS | Frames w/ tracks |
 |---------|------|---------|--------:|----------:|-----------------:|
-| `best.pt` (s) | detect+SORT only (`--no-save`) | `fast` + FP16 | 46.7 | **52.4** | 239 (29.4%) |
-| `best.pt` (s) | detect+SORT+write MP4 | `fast` + FP16 | ~29–38 | ~48 | 239 (29.4%) |
+| `best.engine` (s, TRT FP16) | detect+SORT only (`--no-save`) | imgsz 512 | **90.0** | **105.3** | 229 (28.1%) |
+| `best_n.engine` (n, TRT FP16) | detect+SORT only (`--no-save`) | imgsz 512 | **98.4** | **118.0** | 168 (20.6%) |
+| `best.pt` (s) | detect+SORT only (`--no-save`) | `fast` + FP16 | 46.7 | 52.4 | 239 (29.4%) |
 | `best_n.pt` (n) | detect+SORT only (`--no-save`) | `fast` + FP16 | 44.6 | 49.0 | 290\* |
-| `best_n.pt` (n) | detect+SORT only (`--no-save`) | `realtime` + FP16 | 45.9 | 51.3 | 153 (18.8%) |
+| `best.pt` (s) | detect+SORT+write MP4 | `fast` + FP16 | ~29–38 | ~48 | 239 (29.4%) |
 
 \*compare_speed uses `min_hits=1`; `run_track` defaults to `min_hits=3` (lower hit-rate).
 
-Infer FPS excludes 10 warmup frames and skips draw/encode. Fine-tuned nano is only ~1–3 FPS ahead of s on this laptop and loses recall — default `fast` stays on `best.pt`. Next lever for ~60 is TensorRT (not installed here yet).
+Infer FPS excludes 10 warmup frames and skips draw/encode. **TensorRT clears the ~60 goal** (~105–118 infer FPS on this 4060). PyTorch nano is only ~1–3 FPS ahead of s and loses recall — default `fast` stays on `best.pt`. Engines are GPU-local (gitignored); rebuild with `scripts/export_engine.py`.
 
 ```bash
-# Speed check (no video file)
+# Speed check (PyTorch)
 python -m scripts.run_track --source testing_media/rocket_launch.mov --device cuda --profile fast --half --no-save
 
-# Annotated output
-python -m scripts.run_track --source testing_media/rocket_launch.mov --device cuda --profile fast --half --out outputs/tracked
+# TensorRT (after: pip install tensorrt==10.3.0 && python -m scripts.export_engine)
+python -m scripts.run_track --weights weights/best.engine --device cuda --imgsz 512 --half --no-save
+python -m scripts.run_track --weights weights/best.engine --device cuda --imgsz 512 --half --out outputs/tracked
 
 # Nano bake-off
 python -m scripts.compare_speed --weights weights/best.pt weights/best_n.pt --device cuda
@@ -77,10 +79,13 @@ python -m pytest tests -q
 - `weights/best.pt` — default (fine-tuned YOLOv8s, class `Rocket`)
 - `weights/best_n.pt` — fine-tuned YOLOv8n (40 epochs, imgsz 512); used by `realtime` when present
 - `weights/best.onnx` / `best_n.onnx` — ONNX exports for benches
+- `weights/*.engine` — TensorRT (local only; rebuild per GPU)
 
 ```bash
 python -m scripts.export_onnx --weights weights/best.pt --out weights/best.onnx
 python -m scripts.train_nano --data data.yaml   # writes weights/best_n.pt
+pip install tensorrt==10.3.0
+python -m scripts.export_engine --weights weights/best.pt --imgsz 512
 ```
 
 ## Dataset
@@ -118,7 +123,8 @@ RTX 4060 laptop (`imgsz=640`, detect-only):
 | pytorch_cuda | 39.9 | |
 | pytorch_cpu | 9.0 | |
 | onnx_cpu | 6.9 | |
-| onnx_cuda / tensorrt | — | N/A until EP / engine available |
+| onnx_cuda | — | EP not wired in this bench |
+| tensorrt (track e2e) | **105+** | `best.engine` / `best_n.engine` on RTX 4060 (see table above) |
 
 Artifacts: `assets/results/bench_windows-rtx4060-8gb-amd64.*`.
 
@@ -130,6 +136,7 @@ Don’t mix machines or invent TensorRT numbers. Warmup frames are discarded.
 python -m scripts.run_track --source testing_media/rocket_launch.mov --profile fast --device auto --out outputs/tracked
 python -m scripts.run_bench --source testing_media/rocket_launch.mov --out assets/results/
 python -m scripts.export_onnx
+python -m scripts.export_engine --weights weights/best.pt --imgsz 512
 python -m scripts.smoke_check --track
 python -m scripts.train --data data.yaml
 python -m scripts.train_nano --data data.yaml
@@ -140,7 +147,7 @@ python -m scripts.compare_speed --device cuda
 
 - SORT has no ReID; IDs can switch under occlusion
 - Full train images aren’t in git
-- Jetson / TensorRT numbers only when measured on device
+- TensorRT engines are GPU-specific; rebuild with `export_engine` (needs `tensorrt==10.3.0` on this CUDA 12 stack)
 
 ## License
 
