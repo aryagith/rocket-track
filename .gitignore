@@ -1,26 +1,8 @@
-# rocket-track — cloneable detector / SORT tracker / bench toolkit
+# rocket-track — cloneable detector / SORT / bench toolkit
 
-# Local / machine dumps (not the product)
+# Python / env
 .venv/
 venv/
-archive.zip
-data.zip
-Rocket Tracking.v1i.yolov8.zip
-*.zip
-_local_runs_detect/
-_local_runs_misc/
-rocket_tracking/
-_restructure.bat
-_restructure2.bat
-_commit_tmp.bat
-_push_tmp.bat
-_make_demos.py
-_run_continue.bat
-_pick_demo.py
-_run_track_launch.bat
-testing_media/rocket launch.mov
-
-# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -32,18 +14,28 @@ build/
 .ruff_cache/
 .env
 
-# Outputs / caches
+# Local dumps (not product)
+archive.zip
+data.zip
+Rocket Tracking.v1i.yolov8.zip
+*.zip
+_local_runs_detect/
+_local_runs_misc/
+rocket_tracking/
+_*.bat
+_*.py
+
+# Outputs
 outputs/
 !outputs/.gitignore
-runs/detect/
-runs/track/
-runs/predict/
+
+# Caches
 *.cache
 train/labels.cache
 valid/labels.cache
 test/labels.cache
 
-# Full Roboflow image dumps (labels kept; see docs/DATASET.md)
+# Full Roboflow images (labels kept)
 train/images/*
 !train/images/README.md
 valid/images/*
@@ -51,15 +43,16 @@ valid/images/*
 test/images/*
 !test/images/README.md
 
-# Base YOLO checkpoints (downloaded by ultralytics on demand)
+# Base YOLO checkpoints + bulky train dumps
 yolov8n.pt
 yolov8s.pt
 yolo11n.pt
-
-# Large / duplicate training artifacts (product weights live under weights/)
 runs/train/**/weights/
 runs/train/**/train_batch*.jpg
 runs/train/rocket_yolov82/
+testing_media/rocket launch.mov
+testing_media/IMG_0026.png
+testing_media/IMG_5934.mov
 
 # OS / IDE
 .DS_Store
