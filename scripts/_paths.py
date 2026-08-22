@@ -25,12 +25,32 @@ def default_weights() -> Path:
 def default_source() -> Path:
     for cand in [
         ROOT / "testing_media" / "testvid.mp4",
-        ROOT / "testing_media" / "IMG_0026.png",
+        ROOT / "assets" / "sample" / "demo_rocket.jpg",
         ROOT / "assets" / "sample",
+        ROOT / "testing_media" / "IMG_0026.png",
     ]:
         if cand.exists():
             return cand
     return ROOT / "assets" / "sample"
+
+
+def default_still() -> Path:
+    """Prefer a known rocket still over incidental phone photos."""
+    preferred = [
+        ROOT / "assets" / "sample" / "demo_rocket.jpg",
+        ROOT / "assets" / "results" / "demo_track_still.jpg",
+    ]
+    for cand in preferred:
+        if cand.exists():
+            return cand
+    sample = ROOT / "assets" / "sample"
+    if sample.exists():
+        for p in sorted(sample.glob("*.jpg")):
+            return p
+        for p in sorted(sample.glob("*.png")):
+            if p.name != "IMG_0026.png":
+                return p
+    return default_source()
 
 
 def default_onnx() -> Path:

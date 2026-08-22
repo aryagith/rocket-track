@@ -9,10 +9,14 @@ Rocket Tracking.v1i.yolov8.zip
 *.zip
 _local_runs_detect/
 _local_runs_misc/
+rocket_tracking/
 _restructure.bat
 _restructure2.bat
 _commit_tmp.bat
 _push_tmp.bat
+_make_demos.py
+_run_continue.bat
+_pick_demo.py
 
 # Python
 __pycache__/

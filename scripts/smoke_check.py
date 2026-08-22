@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from scripts._paths import ROOT, default_source, default_weights, resolve_device
+from scripts._paths import ROOT, default_still, default_weights, resolve_device
 
 
 def main() -> int:
@@ -43,11 +43,7 @@ def main() -> int:
         else:
             from rocket_track.pipeline import TrackPipeline
 
-            source = default_source()
-            # Prefer a still for fast smoke
-            still = ROOT / "assets" / "sample" / "IMG_0026.png"
-            if still.exists():
-                source = still
+            source = default_still()
             out = ROOT / "outputs" / "smoke"
             device = resolve_device(args.device)
             print(f"Tracking {source} on device={device} ...")

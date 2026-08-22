@@ -4,6 +4,8 @@ Detect and track rockets in launch video using a domain-tuned YOLO detector, a f
 
 ![SORT track still](assets/results/demo_track_still.jpg)
 
+![Tracked video frame](assets/results/demo_track_video_frame.jpg)
+
 ![Training results](runs/train/rocket_detector/results.png)
 
 ## Problem
@@ -23,8 +25,8 @@ pip install -e .
 # CPU smoke track on bundled sample / testing media
 python -m scripts.run_track --source testing_media/testvid.mp4 --weights weights/best.pt --tracker sort --device cpu --out outputs/track
 
-# Or a still from assets/sample
-python -m scripts.run_track --source assets/sample/IMG_0026.png --weights weights/best.pt --device cpu --out outputs/track_img
+# Or a still with a visible rocket
+python -m scripts.run_track --source assets/sample/demo_rocket.jpg --weights weights/best.pt --device cpu --out outputs/track_img
 ```
 
 CUDA (when available):
