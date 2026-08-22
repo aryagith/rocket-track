@@ -18,7 +18,7 @@ PROFILES = {
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Detect and track rockets (SORT default).")
     p.add_argument("--source", type=Path, default=default_source(), help="Image, video, or directory")
-    p.add_argument("--weights", type=Path, default=None, help="YOLO .pt weights (default: best_n.pt if present for fast/realtime)")
+    p.add_argument("--weights", type=Path, default=None, help="YOLO .pt weights (default: best.pt; nano only for realtime)")
     p.add_argument("--tracker", choices=["sort", "bytetrack"], default="sort")
     p.add_argument("--device", default="auto", help="auto | cpu | 0 | cuda")
     p.add_argument(
@@ -47,7 +47,8 @@ def main() -> None:
     profile = PROFILES[args.profile]
     imgsz = args.imgsz if args.imgsz is not None else profile["imgsz"]
     conf = args.conf if args.conf is not None else profile["conf"]
-    prefer_nano = args.profile in {"fast", "realtime"}
+    # Nano is only ~1–3 FPS faster than s on a 4060 and loses track hit-rate; use for realtime only.
+    prefer_nano = args.profile == "realtime"
     weights = args.weights if args.weights is not None else default_weights(prefer_nano=prefer_nano)
 
     print(f"source={args.source}")

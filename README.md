@@ -28,13 +28,16 @@ Open `outputs/tracked/rocket_launch_tracked.mp4`.
 
 ### Latest CUDA track — RTX 4060 Laptop (`rocket_launch.mov`, 814 frames)
 
-| Mode | Profile | e2e FPS | Infer FPS | Frames w/ tracks |
-|------|---------|--------:|----------:|-----------------:|
-| detect+SORT+write MP4 | `fast` + FP16 | 28.8 | 37.9 | 239 (29.4%) |
-| detect+SORT only (`--no-save`) | `fast` + FP16 | 40.4 | **47.1** | 239 (29.4%) |
-| detect+SORT only (`--no-save`) | `realtime` + FP16 | 35.3 | 41.6 | 165 (20.3%) |
+| Weights | Mode | Profile | e2e FPS | Infer FPS | Frames w/ tracks |
+|---------|------|---------|--------:|----------:|-----------------:|
+| `best.pt` (s) | detect+SORT only (`--no-save`) | `fast` + FP16 | 46.7 | **52.4** | 239 (29.4%) |
+| `best.pt` (s) | detect+SORT+write MP4 | `fast` + FP16 | ~29–38 | ~48 | 239 (29.4%) |
+| `best_n.pt` (n) | detect+SORT only (`--no-save`) | `fast` + FP16 | 44.6 | 49.0 | 290\* |
+| `best_n.pt` (n) | detect+SORT only (`--no-save`) | `realtime` + FP16 | 45.9 | 51.3 | 153 (18.8%) |
 
-Infer FPS excludes 10 warmup frames and skips draw/encode. Still short of the ~60 goal on YOLOv8s — next levers are a smaller fine-tuned nano weights and TensorRT on Jetson/4060.
+\*compare_speed uses `min_hits=1`; `run_track` defaults to `min_hits=3` (lower hit-rate).
+
+Infer FPS excludes 10 warmup frames and skips draw/encode. Fine-tuned nano is only ~1–3 FPS ahead of s on this laptop and loses recall — default `fast` stays on `best.pt`. Next lever for ~60 is TensorRT (not installed here yet).
 
 ```bash
 # Speed check (no video file)
@@ -42,6 +45,9 @@ python -m scripts.run_track --source testing_media/rocket_launch.mov --device cu
 
 # Annotated output
 python -m scripts.run_track --source testing_media/rocket_launch.mov --device cuda --profile fast --half --out outputs/tracked
+
+# Nano bake-off
+python -m scripts.compare_speed --weights weights/best.pt weights/best_n.pt --device cuda
 ```
 
 ```bash
@@ -54,14 +60,14 @@ python -m pytest tests -q
 |------|---------|
 | `src/rocket_track/` | Library: detect, SORT, pipeline, backends, bench |
 | `scripts/` | CLIs (`run_track`, `run_bench`, `export_onnx`, `train`, `smoke_check`) |
-| `weights/best.pt` / `best.onnx` | Product detector |
+| `weights/best.pt` / `best_n.pt` (+ ONNX) | Product detectors (s default, n for realtime) |
 | `testing_media/` | Launch clips (`rocket_launch.mov`, `testvid.mp4`) |
 | `outputs/tracked/` | Annotated videos (gitignored, local only) |
 | `assets/sample/` | Smoke still (`demo_rocket.jpg`) |
 | `assets/results/` | Bench CSV/plots + demo stills |
 | `configs/` | `fast.yaml`, `default.yaml`, `bytetrack.yaml` |
 | `data.yaml` + `train/` `valid/` `test/` | Dataset (labels in git; images gitignored) |
-| `runs/train/rocket_detector/` | Training curves / metrics |
+| `runs/train/rocket_detector/` / `_n/` | Training curves / metrics |
 | `docs/DATASET.md` | How to download full images |
 | `legacy/` | Old scripts and notes |
 | `tests/` | Unit tests |
@@ -69,10 +75,12 @@ python -m pytest tests -q
 ## Weights
 
 - `weights/best.pt` — default (fine-tuned YOLOv8s, class `Rocket`)
-- `weights/best.onnx` — for ONNX benches
+- `weights/best_n.pt` — fine-tuned YOLOv8n (40 epochs, imgsz 512); used by `realtime` when present
+- `weights/best.onnx` / `best_n.onnx` — ONNX exports for benches
 
 ```bash
 python -m scripts.export_onnx --weights weights/best.pt --out weights/best.onnx
+python -m scripts.train_nano --data data.yaml   # writes weights/best_n.pt
 ```
 
 ## Dataset
@@ -81,11 +89,17 @@ Single class `Rocket`. Labels are tracked; full images are not (~70GB). Details:
 
 Roboflow: `arbalesttest` / `rocket-tracking-pduic-ay8b4` v1 (CC BY 4.0).
 
-Val (epoch 200, from `runs/train/rocket_detector/results.csv`):
+Val — YOLOv8s (epoch 200, `runs/train/rocket_detector/`):
 
 | mAP50 | mAP50-95 | Precision | Recall |
 |------:|---------:|----------:|-------:|
 | 0.882 | 0.661 | 0.928 | 0.790 |
+
+Val — YOLOv8n (best epoch 39, `runs/train/rocket_detector_n/`):
+
+| mAP50 | mAP50-95 | Precision | Recall |
+|------:|---------:|----------:|-------:|
+| 0.838 | 0.612 | 0.878 | 0.760 |
 
 ## Tracking
 
@@ -118,6 +132,8 @@ python -m scripts.run_bench --source testing_media/rocket_launch.mov --out asset
 python -m scripts.export_onnx
 python -m scripts.smoke_check --track
 python -m scripts.train --data data.yaml
+python -m scripts.train_nano --data data.yaml
+python -m scripts.compare_speed --device cuda
 ```
 
 ## Limitations
