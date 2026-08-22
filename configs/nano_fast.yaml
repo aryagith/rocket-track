@@ -1,0 +1,12 @@
+# Nano + fast profile — prefer weights/best_n.pt when available
+weights: weights/best_n.pt
+imgsz: 512
+conf: 0.30
+iou: 0.45
+device: auto
+half: true
+tracker: sort
+sort:
+  max_age: 30
+  min_hits: 3
+  iou_threshold: 0.3
