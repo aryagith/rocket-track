@@ -20,11 +20,29 @@ Open `outputs/tracked/rocket_launch_tracked.mp4`.
 
 | Profile | imgsz | Use |
 |---------|------:|-----|
-| `fast` (default) | 512 | Speed |
+| `fast` (default) | 512 | Speed / default |
 | `quality` | 640 | Better recall on tiny rockets |
-| `realtime` | 416 | Max FPS |
+| `realtime` | 416 | Smaller input (try when chasing FPS) |
 
-`--device auto` uses CUDA when PyTorch sees a GPU, otherwise CPU. FP16 is enabled on CUDA.
+`--device auto` uses CUDA when PyTorch sees a GPU. FP16 defaults on for CUDA (`--half` / `--no-half`).
+
+### Latest CUDA track — RTX 4060 Laptop (`rocket_launch.mov`, 814 frames)
+
+| Mode | Profile | e2e FPS | Infer FPS | Frames w/ tracks |
+|------|---------|--------:|----------:|-----------------:|
+| detect+SORT+write MP4 | `fast` + FP16 | 28.8 | 37.9 | 239 (29.4%) |
+| detect+SORT only (`--no-save`) | `fast` + FP16 | 40.4 | **47.1** | 239 (29.4%) |
+| detect+SORT only (`--no-save`) | `realtime` + FP16 | 35.3 | 41.6 | 165 (20.3%) |
+
+Infer FPS excludes 10 warmup frames and skips draw/encode. Still short of the ~60 goal on YOLOv8s — next levers are a smaller fine-tuned nano weights and TensorRT on Jetson/4060.
+
+```bash
+# Speed check (no video file)
+python -m scripts.run_track --source testing_media/rocket_launch.mov --device cuda --profile fast --half --no-save
+
+# Annotated output
+python -m scripts.run_track --source testing_media/rocket_launch.mov --device cuda --profile fast --half --out outputs/tracked
+```
 
 ```bash
 python -m pytest tests -q

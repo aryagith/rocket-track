@@ -82,6 +82,8 @@ class RunStats:
     n_frames: int
     elapsed_s: float
     fps: float
+    infer_elapsed_s: float
+    infer_fps: float
     frames_with_tracks: int
 
 
@@ -159,6 +161,7 @@ class TrackPipeline:
         out_dir: PathLike,
         save_video: bool = True,
         class_names: Optional[Sequence[str]] = None,
+        warmup: int = 10,
     ) -> RunStats:
         source = Path(source)
         out_dir = Path(out_dir)
@@ -174,13 +177,23 @@ class TrackPipeline:
 
         n_frames = 0
         frames_with_tracks = 0
+        infer_elapsed = 0.0
         t0 = time.perf_counter()
 
         for idx, frame in iter_frames(source):
+            t_infer0 = time.perf_counter()
             tracks = self.process_frame(frame)
+            # Discard warmup from infer timing only
+            if idx >= warmup:
+                infer_elapsed += time.perf_counter() - t_infer0
             n_frames += 1
             if tracks:
                 frames_with_tracks += 1
+
+            # Speed path: skip draw/encode when not saving
+            if not save_video and not is_image(source) and not source.is_dir():
+                continue
+
             annotated = draw_tracks(frame, tracks, class_names=names)
             if is_image(source) or source.is_dir():
                 if is_image(source):
@@ -196,6 +209,8 @@ class TrackPipeline:
                         n_frames=1,
                         elapsed_s=elapsed,
                         fps=(1.0 / elapsed) if elapsed > 0 else float("nan"),
+                        infer_elapsed_s=elapsed,
+                        infer_fps=(1.0 / elapsed) if elapsed > 0 else float("nan"),
                         frames_with_tracks=frames_with_tracks,
                     )
             elif save_video:
@@ -207,10 +222,26 @@ class TrackPipeline:
 
         elapsed = time.perf_counter() - t0
         fps = (n_frames / elapsed) if elapsed > 0 else float("nan")
+        timed_frames = max(0, n_frames - warmup)
+        infer_fps = (timed_frames / infer_elapsed) if infer_elapsed > 0 else float("nan")
 
         if writer is not None:
             writer.release()
-            return RunStats(out_path, n_frames, elapsed, fps, frames_with_tracks)
+            return RunStats(
+                out_path, n_frames, elapsed, fps, infer_elapsed, infer_fps, frames_with_tracks
+            )
         if frame_paths:
-            return RunStats(frame_paths[0], n_frames, elapsed, fps, frames_with_tracks)
+            return RunStats(
+                frame_paths[0], n_frames, elapsed, fps, infer_elapsed, infer_fps, frames_with_tracks
+            )
+        if not save_video:
+            return RunStats(
+                out_dir / "(no file — --no-save)",
+                n_frames,
+                elapsed,
+                fps,
+                infer_elapsed,
+                infer_fps,
+                frames_with_tracks,
+            )
         raise RuntimeError(f"No frames processed from {source}")

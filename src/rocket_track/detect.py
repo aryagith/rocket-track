@@ -47,6 +47,10 @@ class YOLODetector:
                 "or pass --weights explicitly. See README for Release / training notes."
             )
         self.model = YOLO(str(self.weights))
+        try:
+            self.model.fuse()
+        except Exception:  # noqa: BLE001
+            pass
         self.device = device
         self.imgsz = imgsz
         self.conf = conf

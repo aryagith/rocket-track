@@ -36,6 +36,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--min-hits", type=int, default=3)
     p.add_argument("--track-iou", type=float, default=0.3)
     p.add_argument("--out", type=Path, default=ROOT / "outputs" / "tracked")
+    p.add_argument("--no-save", action="store_true", help="Skip writing annotated video (speed check)")
+    p.add_argument("--warmup", type=int, default=10, help="Frames excluded from infer FPS")
     return p.parse_args()
 
 
@@ -61,12 +63,18 @@ def main() -> None:
         track_iou=args.track_iou,
         half=args.half,
     )
-    stats = pipe.run(args.source, args.out)
+    stats = pipe.run(
+        args.source,
+        args.out,
+        save_video=not args.no_save,
+        warmup=args.warmup,
+    )
     hit_rate = (100.0 * stats.frames_with_tracks / stats.n_frames) if stats.n_frames else 0.0
     print(f"Wrote: {stats.out_path}")
     print(
         f"frames={stats.n_frames}  with_tracks={stats.frames_with_tracks} ({hit_rate:.1f}%)  "
-        f"elapsed={stats.elapsed_s:.2f}s  e2e_fps={stats.fps:.2f}"
+        f"elapsed={stats.elapsed_s:.2f}s  e2e_fps={stats.fps:.2f}  "
+        f"infer_fps={stats.infer_fps:.2f} (warmup={args.warmup})"
     )
 
 
