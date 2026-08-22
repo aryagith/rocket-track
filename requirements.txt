@@ -13,4 +13,4 @@ pytest>=7.4.0
 
 # Optional (not required for CPU smoke):
 # onnxruntime-gpu>=1.16.0
-# tensorrt  # install from NVIDIA; not pip-guaranteed on Windows
+# tensorrt==10.3.0  # CUDA 12; TRT 11 breaks Ultralytics engine export (EXPLICIT_BATCH)

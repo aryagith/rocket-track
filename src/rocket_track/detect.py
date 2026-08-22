@@ -50,7 +50,11 @@ class YOLODetector:
         if torch.cuda.is_available() and str(device) not in {"cpu", "CPU"}:
             torch.backends.cudnn.benchmark = True
 
-        self.model = YOLO(str(self.weights))
+        # .engine exports need an explicit task; .pt loads task from checkpoint.
+        kw = {}
+        if self.weights.suffix.lower() == ".engine":
+            kw["task"] = "detect"
+        self.model = YOLO(str(self.weights), **kw)
         try:
             self.model.fuse()
         except Exception:  # noqa: BLE001
