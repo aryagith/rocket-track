@@ -1,8 +1,8 @@
 # rocket-track
 
-Detect and track rockets in launch video: domain-tuned YOLOv8s, an in-repo SORT tracker, and latency benches on an RTX 4060.
+Detect and track rockets in launch video: domain-tuned YOLOv8, in-repo SORT, and honest latency benches.
 
-**FPS goal:** ~60 end-to-end on CUDA (detect + track). 30 is the real-time floor.
+**FPS goal:** ~60 detect+track on CUDA (30 is the real-time floor). On an RTX 4060 Laptop, **TensorRT clears that** (~90–98 e2e / ~105–118 infer).
 
 ![Tracked rocket](assets/results/demo_track_still.jpg)
 
@@ -18,41 +18,33 @@ python -m scripts.run_track --source testing_media/rocket_launch.mov --device au
 
 Open `outputs/tracked/rocket_launch_tracked.mp4`.
 
-| Profile | imgsz | Use |
-|---------|------:|-----|
-| `fast` (default) | 512 | Speed / default |
-| `quality` | 640 | Better recall on tiny rockets |
-| `realtime` | 416 | Smaller input (try when chasing FPS) |
+| Profile | imgsz | Weights default | Use |
+|---------|------:|-----------------|-----|
+| `fast` (default) | 512 | `best.pt` (s) | Best speed/quality balance |
+| `quality` | 640 | `best.pt` (s) | Better recall on tiny rockets |
+| `realtime` | 416 | `best_n.pt` if present | Smaller input / nano |
 
-`--device auto` uses CUDA when PyTorch sees a GPU. FP16 defaults on for CUDA (`--half` / `--no-half`).
+`--device auto` picks CUDA when available. FP16 is on for GPU (`--half` / `--no-half`).
 
-### Latest CUDA track — RTX 4060 Laptop (`rocket_launch.mov`, 814 frames)
+### Measured — RTX 4060 Laptop (`rocket_launch.mov`, 814 frames)
 
-| Weights | Mode | Profile | e2e FPS | Infer FPS | Frames w/ tracks |
-|---------|------|---------|--------:|----------:|-----------------:|
-| `best.engine` (s, TRT FP16) | detect+SORT only (`--no-save`) | imgsz 512 | **90.0** | **105.3** | 229 (28.1%) |
-| `best_n.engine` (n, TRT FP16) | detect+SORT only (`--no-save`) | imgsz 512 | **98.4** | **118.0** | 168 (20.6%) |
-| `best.pt` (s) | detect+SORT only (`--no-save`) | `fast` + FP16 | 46.7 | 52.4 | 239 (29.4%) |
-| `best_n.pt` (n) | detect+SORT only (`--no-save`) | `fast` + FP16 | 44.6 | 49.0 | 290\* |
-| `best.pt` (s) | detect+SORT+write MP4 | `fast` + FP16 | ~29–38 | ~48 | 239 (29.4%) |
+| Weights | Mode | e2e FPS | Infer FPS | Frames w/ tracks |
+|---------|------|--------:|----------:|-----------------:|
+| `best.engine` (s, TRT FP16) | detect+SORT (`--no-save`) | **90.0** | **105.3** | 229 (28.1%) |
+| `best_n.engine` (n, TRT FP16) | detect+SORT (`--no-save`) | **98.4** | **118.0** | 168 (20.6%) |
+| `best.pt` (s, FP16) | detect+SORT (`--no-save`) | 46.7 | 52.4 | 239 (29.4%) |
+| `best_n.pt` (n, FP16) | detect+SORT (`--no-save`) | 44.6 | 49.0 | see note\* |
+| `best.engine` (s) | detect+SORT+write MP4 | **72.3** | 110.4 | 229 (28.1%) |
 
-\*compare_speed uses `min_hits=1`; `run_track` defaults to `min_hits=3` (lower hit-rate).
-
-Infer FPS excludes 10 warmup frames and skips draw/encode. **TensorRT clears the ~60 goal** (~105–118 infer FPS on this 4060). PyTorch nano is only ~1–3 FPS ahead of s and loses recall — default `fast` stays on `best.pt`. Engines are GPU-local (gitignored); rebuild with `scripts/export_engine.py`.
+\*PyTorch nano bake-off (`compare_speed`, `min_hits=1`) hit 290 frames; `run_track` uses `min_hits=3`. Nano is only ~1–3 FPS faster than s in PyTorch and loses recall — keep `fast` on `best.pt`. Engines are GPU-local (gitignored).
 
 ```bash
-# Speed check (PyTorch)
+# PyTorch speed check
 python -m scripts.run_track --source testing_media/rocket_launch.mov --device cuda --profile fast --half --no-save
 
-# TensorRT (after: pip install tensorrt==10.3.0 && python -m scripts.export_engine)
-python -m scripts.run_track --weights weights/best.engine --device cuda --imgsz 512 --half --no-save
+# TensorRT (pip install tensorrt==10.3.0 && python -m scripts.export_engine)
 python -m scripts.run_track --weights weights/best.engine --device cuda --imgsz 512 --half --out outputs/tracked
 
-# Nano bake-off
-python -m scripts.compare_speed --weights weights/best.pt weights/best_n.pt --device cuda
-```
-
-```bash
 python -m pytest tests -q
 ```
 
@@ -61,29 +53,40 @@ python -m pytest tests -q
 | Path | Purpose |
 |------|---------|
 | `src/rocket_track/` | Library: detect, SORT, pipeline, backends, bench |
-| `scripts/` | CLIs (`run_track`, `run_bench`, `export_onnx`, `train`, `smoke_check`) |
-| `weights/best.pt` / `best_n.pt` (+ ONNX) | Product detectors (s default, n for realtime) |
+| `scripts/` | CLIs (see below) |
+| `weights/` | `best.pt` / `best_n.pt` (+ ONNX); `*.engine` local only |
 | `testing_media/` | Launch clips (`rocket_launch.mov`, `testvid.mp4`) |
-| `outputs/tracked/` | Annotated videos (gitignored, local only) |
-| `assets/sample/` | Smoke still (`demo_rocket.jpg`) |
-| `assets/results/` | Bench CSV/plots + demo stills |
-| `configs/` | `fast.yaml`, `default.yaml`, `bytetrack.yaml` |
+| `outputs/tracked/` | Annotated videos (gitignored) |
+| `assets/` | Smoke still + bench CSV/plots |
+| `configs/` | `default.yaml`, `fast.yaml`, `bytetrack.yaml` |
 | `data.yaml` + `train/` `valid/` `test/` | Dataset (labels in git; images gitignored) |
-| `runs/train/rocket_detector/` / `_n/` | Training curves / metrics |
+| `runs/train/` | Training curves (`rocket_detector`, `rocket_detector_n`) |
 | `docs/DATASET.md` | How to download full images |
-| `legacy/` | Old scripts and notes |
 | `tests/` | Unit tests |
+
+## Scripts
+
+| Command | Role |
+|---------|------|
+| `python -m scripts.run_track` | Detect + SORT (or ByteTrack) on video/image |
+| `python -m scripts.run_bench` | Backend latency table |
+| `python -m scripts.compare_speed` | Infer FPS bake-off across weight files |
+| `python -m scripts.export_onnx` | Export `.onnx` |
+| `python -m scripts.export_engine` | Export TensorRT `.engine` (GPU-local) |
+| `python -m scripts.train` | Fine-tune YOLOv8s |
+| `python -m scripts.train_nano` | Fine-tune YOLOv8n → `weights/best_n.pt` |
+| `python -m scripts.smoke_check` | Quick detect/track sanity check |
 
 ## Weights
 
-- `weights/best.pt` — default (fine-tuned YOLOv8s, class `Rocket`)
-- `weights/best_n.pt` — fine-tuned YOLOv8n (40 epochs, imgsz 512); used by `realtime` when present
-- `weights/best.onnx` / `best_n.onnx` — ONNX exports for benches
-- `weights/*.engine` — TensorRT (local only; rebuild per GPU)
+- `weights/best.pt` — default (YOLOv8s, class `Rocket`)
+- `weights/best_n.pt` — YOLOv8n (40 epochs, imgsz 512); used by `realtime` when present
+- `weights/best.onnx` / `best_n.onnx` — ONNX for benches
+- `weights/*.engine` — TensorRT; rebuild per GPU
 
 ```bash
 python -m scripts.export_onnx --weights weights/best.pt --out weights/best.onnx
-python -m scripts.train_nano --data data.yaml   # writes weights/best_n.pt
+python -m scripts.train_nano --data data.yaml
 pip install tensorrt==10.3.0
 python -m scripts.export_engine --weights weights/best.pt --imgsz 512
 ```
@@ -94,60 +97,41 @@ Single class `Rocket`. Labels are tracked; full images are not (~70GB). Details:
 
 Roboflow: `arbalesttest` / `rocket-tracking-pduic-ay8b4` v1 (CC BY 4.0).
 
-Val — YOLOv8s (epoch 200, `runs/train/rocket_detector/`):
-
-| mAP50 | mAP50-95 | Precision | Recall |
-|------:|---------:|----------:|-------:|
-| 0.882 | 0.661 | 0.928 | 0.790 |
-
-Val — YOLOv8n (best epoch 39, `runs/train/rocket_detector_n/`):
-
-| mAP50 | mAP50-95 | Precision | Recall |
-|------:|---------:|----------:|-------:|
-| 0.838 | 0.612 | 0.878 | 0.760 |
+| Model | mAP50 | mAP50-95 | Precision | Recall |
+|-------|------:|---------:|----------:|-------:|
+| YOLOv8s (epoch 200) | 0.882 | 0.661 | 0.928 | 0.790 |
+| YOLOv8n (best epoch 39) | 0.838 | 0.612 | 0.878 | 0.760 |
 
 ## Tracking
 
-Default tracker is **SORT** in `src/rocket_track/track_sort.py` (Kalman + IoU + Hungarian). Optional: `--tracker bytetrack` (Ultralytics).
+Default tracker is **SORT** in `src/rocket_track/track_sort.py` (Kalman + IoU + Hungarian). Optional: `--tracker bytetrack`.
 
 ## Benchmarks
 
 ```bash
 python -m scripts.run_bench --source testing_media/testvid.mp4 --out assets/results/
+python -m scripts.compare_speed --weights weights/best.pt weights/best_n.pt --device cuda
 ```
 
-RTX 4060 laptop (`imgsz=640`, detect-only):
+Detect-only (`imgsz=640`, earlier bench):
 
 | Backend | FPS | Notes |
 |---------|----:|-------|
 | pytorch_cuda | 39.9 | |
 | pytorch_cpu | 9.0 | |
 | onnx_cpu | 6.9 | |
-| onnx_cuda | — | EP not wired in this bench |
-| tensorrt (track e2e) | **105+** | `best.engine` / `best_n.engine` on RTX 4060 (see table above) |
+| onnx_cuda | — | EP not wired here |
+| tensorrt (track e2e) | **105+** | See table above |
 
-Artifacts: `assets/results/bench_windows-rtx4060-8gb-amd64.*`.
+Artifacts: `assets/results/bench_windows-rtx4060-8gb-amd64.*`, `speed_compare.csv`.
 
-Don’t mix machines or invent TensorRT numbers. Warmup frames are discarded.
-
-## CLI
-
-```bash
-python -m scripts.run_track --source testing_media/rocket_launch.mov --profile fast --device auto --out outputs/tracked
-python -m scripts.run_bench --source testing_media/rocket_launch.mov --out assets/results/
-python -m scripts.export_onnx
-python -m scripts.export_engine --weights weights/best.pt --imgsz 512
-python -m scripts.smoke_check --track
-python -m scripts.train --data data.yaml
-python -m scripts.train_nano --data data.yaml
-python -m scripts.compare_speed --device cuda
-```
+Warmup frames are discarded. Don’t invent TensorRT numbers from another GPU.
 
 ## Limitations
 
 - SORT has no ReID; IDs can switch under occlusion
 - Full train images aren’t in git
-- TensorRT engines are GPU-specific; rebuild with `export_engine` (needs `tensorrt==10.3.0` on this CUDA 12 stack)
+- TensorRT engines are GPU-specific (`tensorrt==10.3.0` on this CUDA 12 stack; TRT 11 breaks Ultralytics export)
 
 ## License
 

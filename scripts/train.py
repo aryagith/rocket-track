@@ -1,6 +1,6 @@
 """Train the rocket YOLOv8s detector (RTX 4060-oriented defaults).
 
-Preserves the original training recipe from legacy/train.py and points at
+Fine-tunes YOLOv8s on the rocket dataset and points at
 repo-root data.yaml by default.
 """
 
