@@ -1,0 +1,3 @@
+weights,device,imgsz,n_frames,with_tracks,e2e_fps,infer_fps
+best.pt,0,512,814,375,42.23,47.61
+best_n.pt,0,512,814,290,44.6,48.96
