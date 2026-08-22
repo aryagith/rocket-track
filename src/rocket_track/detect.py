@@ -35,6 +35,7 @@ class YOLODetector:
         imgsz: int = 640,
         conf: float = 0.25,
         iou: float = 0.45,
+        half: Optional[bool] = None,
     ):
         from ultralytics import YOLO
 
@@ -50,6 +51,9 @@ class YOLODetector:
         self.imgsz = imgsz
         self.conf = conf
         self.iou = iou
+        if half is None:
+            half = str(device) not in {"cpu", "CPU"}
+        self.half = bool(half) and str(device) not in {"cpu", "CPU"}
 
     def predict(self, image_bgr: np.ndarray) -> List[Detection]:
         results = self.model.predict(
@@ -58,6 +62,7 @@ class YOLODetector:
             iou=self.iou,
             imgsz=self.imgsz,
             device=self.device,
+            half=self.half,
             verbose=False,
         )
         out: List[Detection] = []

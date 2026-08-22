@@ -24,10 +24,12 @@ def default_weights() -> Path:
 
 def default_source() -> Path:
     for cand in [
+        ROOT / "testing_media" / "rocket_launch.mov",
+        ROOT / "testing_media" / "rocket launch.mov",
+        ROOT / "testing_media" / "IMG_5934.mov",
         ROOT / "testing_media" / "testvid.mp4",
         ROOT / "assets" / "sample" / "demo_rocket.jpg",
         ROOT / "assets" / "sample",
-        ROOT / "testing_media" / "IMG_0026.png",
     ]:
         if cand.exists():
             return cand
@@ -68,8 +70,17 @@ def default_onnx() -> Path:
 def resolve_device(device: str) -> str:
     """Map CLI device aliases. ``auto`` picks CUDA when available."""
     device = (device or "cpu").strip().lower()
-    if device in {"cuda", "gpu"}:
-        return "0"
+    if device in {"cuda", "gpu", "0"}:
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                return "0"
+            print("CUDA requested but torch.cuda.is_available() is False; falling back to CPU")
+            return "cpu"
+        except Exception:  # noqa: BLE001
+            print("CUDA requested but torch could not be imported; falling back to CPU")
+            return "cpu"
     if device == "auto":
         try:
             import torch

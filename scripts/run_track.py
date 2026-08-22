@@ -6,9 +6,13 @@ import argparse
 from pathlib import Path
 
 from scripts._paths import ROOT, default_source, default_weights, resolve_device
-
-# Ensure package import works as `python -m scripts.run_track`
 from rocket_track.pipeline import TrackPipeline
+
+PROFILES = {
+    "quality": {"imgsz": 640, "conf": 0.25},
+    "fast": {"imgsz": 512, "conf": 0.30},
+    "realtime": {"imgsz": 416, "conf": 0.35},
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -17,32 +21,53 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--weights", type=Path, default=default_weights(), help="YOLO .pt weights")
     p.add_argument("--tracker", choices=["sort", "bytetrack"], default="sort")
     p.add_argument("--device", default="auto", help="auto | cpu | 0 | cuda")
-    p.add_argument("--imgsz", type=int, default=640)
-    p.add_argument("--conf", type=float, default=0.25)
+    p.add_argument(
+        "--profile",
+        choices=sorted(PROFILES.keys()),
+        default="fast",
+        help="quality=640, fast=512 (default), realtime=416",
+    )
+    p.add_argument("--imgsz", type=int, default=None, help="Override profile imgsz")
+    p.add_argument("--conf", type=float, default=None, help="Override profile conf")
     p.add_argument("--iou", type=float, default=0.45)
+    p.add_argument("--half", action=argparse.BooleanOptionalAction, default=None,
+                   help="FP16 on CUDA (default: on for GPU, off for CPU)")
     p.add_argument("--max-age", type=int, default=30)
     p.add_argument("--min-hits", type=int, default=3)
     p.add_argument("--track-iou", type=float, default=0.3)
-    p.add_argument("--out", type=Path, default=ROOT / "outputs" / "track")
+    p.add_argument("--out", type=Path, default=ROOT / "outputs" / "tracked")
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     device = resolve_device(args.device)
+    profile = PROFILES[args.profile]
+    imgsz = args.imgsz if args.imgsz is not None else profile["imgsz"]
+    conf = args.conf if args.conf is not None else profile["conf"]
+
+    print(f"source={args.source}")
+    print(f"device={device}  profile={args.profile}  imgsz={imgsz}  conf={conf}  half={args.half}")
+
     pipe = TrackPipeline(
         weights=args.weights,
         device=device,
-        imgsz=args.imgsz,
-        conf=args.conf,
+        imgsz=imgsz,
+        conf=conf,
         iou=args.iou,
         tracker=args.tracker,
         max_age=args.max_age,
         min_hits=args.min_hits,
         track_iou=args.track_iou,
+        half=args.half,
     )
-    out = pipe.run(args.source, args.out)
-    print(f"Wrote: {out}")
+    stats = pipe.run(args.source, args.out)
+    hit_rate = (100.0 * stats.frames_with_tracks / stats.n_frames) if stats.n_frames else 0.0
+    print(f"Wrote: {stats.out_path}")
+    print(
+        f"frames={stats.n_frames}  with_tracks={stats.frames_with_tracks} ({hit_rate:.1f}%)  "
+        f"elapsed={stats.elapsed_s:.2f}s  e2e_fps={stats.fps:.2f}"
+    )
 
 
 if __name__ == "__main__":

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator, List, Optional, Sequence, Tuple, Union
 
@@ -24,6 +26,17 @@ def is_image(path: Path) -> bool:
 
 def is_video(path: Path) -> bool:
     return path.suffix.lower() in VIDEO_EXTS
+
+
+def probe_video_fps(source: Path, default: float = 30.0) -> float:
+    cap = cv2.VideoCapture(str(source))
+    if not cap.isOpened():
+        return default
+    fps = float(cap.get(cv2.CAP_PROP_FPS) or 0.0)
+    cap.release()
+    if fps <= 1e-3 or fps > 240:
+        return default
+    return fps
 
 
 def iter_frames(source: PathLike) -> Iterator[Tuple[int, np.ndarray]]:
@@ -63,6 +76,15 @@ def iter_frames(source: PathLike) -> Iterator[Tuple[int, np.ndarray]]:
     raise FileNotFoundError(f"Source not found: {source}")
 
 
+@dataclass
+class RunStats:
+    out_path: Path
+    n_frames: int
+    elapsed_s: float
+    fps: float
+    frames_with_tracks: int
+
+
 class TrackPipeline:
     def __init__(
         self,
@@ -75,14 +97,16 @@ class TrackPipeline:
         max_age: int = 30,
         min_hits: int = 3,
         track_iou: float = 0.3,
+        half: Optional[bool] = None,
     ):
         self.tracker_name = tracker.lower()
-        self.detector = YOLODetector(weights, device=device, imgsz=imgsz, conf=conf, iou=iou)
+        self.detector = YOLODetector(
+            weights, device=device, imgsz=imgsz, conf=conf, iou=iou, half=half
+        )
         self.sort = SortTracker(max_age=max_age, min_hits=min_hits, iou_threshold=track_iou)
         self._bt_model = None
         self._bt_cfg = "bytetrack.yaml"
         if self.tracker_name == "bytetrack":
-            # Optional comparison path using Ultralytics built-in tracker.
             self._bt_model = self.detector.model
             repo_cfg = Path(__file__).resolve().parents[2] / "configs" / "bytetrack.yaml"
             if repo_cfg.exists():
@@ -101,6 +125,7 @@ class TrackPipeline:
                 iou=self.detector.iou,
                 imgsz=self.detector.imgsz,
                 device=self.detector.device,
+                half=self.detector.half,
                 verbose=False,
             )
             tracks: List[TrackResult] = []
@@ -134,38 +159,58 @@ class TrackPipeline:
         out_dir: PathLike,
         save_video: bool = True,
         class_names: Optional[Sequence[str]] = None,
-    ) -> Path:
+    ) -> RunStats:
         source = Path(source)
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
         self.reset()
 
         writer = None
-        out_path = out_dir / f"{source.stem}_tracked.mp4"
+        safe_stem = source.stem.replace(" ", "_")
+        out_path = out_dir / f"{safe_stem}_tracked.mp4"
         frame_paths: List[Path] = []
         names = list(class_names) if class_names else ["Rocket"]
+        video_fps = probe_video_fps(source) if is_video(source) else 30.0
+
+        n_frames = 0
+        frames_with_tracks = 0
+        t0 = time.perf_counter()
 
         for idx, frame in iter_frames(source):
             tracks = self.process_frame(frame)
+            n_frames += 1
+            if tracks:
+                frames_with_tracks += 1
             annotated = draw_tracks(frame, tracks, class_names=names)
             if is_image(source) or source.is_dir():
-                fp = out_dir / f"{source.stem if is_image(source) else 'frame'}_{idx:06d}.jpg"
                 if is_image(source):
-                    fp = out_dir / f"{source.stem}_tracked.jpg"
+                    fp = out_dir / f"{safe_stem}_tracked.jpg"
+                else:
+                    fp = out_dir / f"frame_{idx:06d}.jpg"
                 cv2.imwrite(str(fp), annotated)
                 frame_paths.append(fp)
                 if is_image(source):
-                    return fp
+                    elapsed = time.perf_counter() - t0
+                    return RunStats(
+                        out_path=fp,
+                        n_frames=1,
+                        elapsed_s=elapsed,
+                        fps=(1.0 / elapsed) if elapsed > 0 else float("nan"),
+                        frames_with_tracks=frames_with_tracks,
+                    )
             elif save_video:
                 if writer is None:
                     h, w = annotated.shape[:2]
                     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-                    writer = cv2.VideoWriter(str(out_path), fourcc, 30.0, (w, h))
+                    writer = cv2.VideoWriter(str(out_path), fourcc, video_fps, (w, h))
                 writer.write(annotated)
+
+        elapsed = time.perf_counter() - t0
+        fps = (n_frames / elapsed) if elapsed > 0 else float("nan")
 
         if writer is not None:
             writer.release()
-            return out_path
+            return RunStats(out_path, n_frames, elapsed, fps, frames_with_tracks)
         if frame_paths:
-            return frame_paths[0]
+            return RunStats(frame_paths[0], n_frames, elapsed, fps, frames_with_tracks)
         raise RuntimeError(f"No frames processed from {source}")
