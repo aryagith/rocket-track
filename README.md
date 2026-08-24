@@ -38,7 +38,7 @@ From `assets/results/quality_bakeoff.csv`:
 | **quality conf0.20 coast25** | **90.5%** | ~42 |
 | quality conf0.15 coast25 | 94.3% | ~41 |
 
-Demo videos (local): `outputs/tracked_nocoast/` vs `outputs/tracked_coast/` vs `outputs/tracked_quality/`.
+Demo videos (local): `outputs/compare/` (`01_nocoast` → `02_coast` → `03_quality` → `04_nano`).
 
 ### Speed — TensorRT (imgsz 512, older coast=0 numbers)
 
@@ -64,7 +64,7 @@ python -m pytest tests -q
 | `scripts/` | CLIs (see below) |
 | `weights/` | `best.pt` / `best_n.pt` (+ ONNX); `*.engine` local only |
 | `testing_media/` | Launch clips |
-| `outputs/` | Tracked videos + hard-frame dumps (gitignored) |
+| `outputs/` | Compare demos + hard-frame dumps (gitignored); see `outputs/compare/README.md` |
 | `assets/results/` | Bench / bake-off CSV |
 | `configs/` | `default.yaml`, `fast.yaml`, `bytetrack.yaml` |
 | `data.yaml` + `train/` `valid/` `test/` | Labels in git; **images gitignored** |
