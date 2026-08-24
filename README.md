@@ -104,7 +104,7 @@ Roboflow: `arbalesttest` / `rocket-tracking-pduic-ay8b4` v1 (CC BY 4.0).
 
 ## Tracking
 
-Default tracker is **SORT** in `src/rocket_track/track_sort.py` (Kalman + IoU + Hungarian). Optional: `--tracker bytetrack`.
+Default tracker is **SORT** in `src/rocket_track/track_sort.py` (Kalman + IoU + Hungarian). After a track is confirmed, missed frames still draw a **coasted** Kalman prediction for `--coast-frames` (default 15; `0` = classic SORT). Coasted boxes are thinner and labeled with `~`. Optional: `--tracker bytetrack`.
 
 ## Benchmarks
 
@@ -129,7 +129,7 @@ Warmup frames are discarded. Don’t invent TensorRT numbers from another GPU.
 
 ## Limitations
 
-- SORT has no ReID; IDs can switch under occlusion
+- SORT has no ReID; IDs can switch under occlusion (coasting fills short detect gaps only)
 - Full train images aren’t in git
 - TensorRT engines are GPU-specific (`tensorrt==10.3.0` on this CUDA 12 stack; TRT 11 breaks Ultralytics export)
 

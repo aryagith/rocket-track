@@ -99,6 +99,7 @@ class TrackPipeline:
         max_age: int = 30,
         min_hits: int = 3,
         track_iou: float = 0.3,
+        coast_frames: int = 15,
         half: Optional[bool] = None,
     ):
         self.tracker_name = tracker.lower()
@@ -109,7 +110,12 @@ class TrackPipeline:
             self.detector.warmup()
         except Exception:  # noqa: BLE001
             pass
-        self.sort = SortTracker(max_age=max_age, min_hits=min_hits, iou_threshold=track_iou)
+        self.sort = SortTracker(
+            max_age=max_age,
+            min_hits=min_hits,
+            iou_threshold=track_iou,
+            coast_frames=coast_frames,
+        )
         self._bt_model = None
         self._bt_cfg = "bytetrack.yaml"
         if self.tracker_name == "bytetrack":

@@ -35,6 +35,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-age", type=int, default=30)
     p.add_argument("--min-hits", type=int, default=3)
     p.add_argument("--track-iou", type=float, default=0.3)
+    p.add_argument(
+        "--coast-frames",
+        type=int,
+        default=15,
+        help="Draw Kalman-predicted boxes for N frames after a miss (0=classic SORT)",
+    )
     p.add_argument("--out", type=Path, default=ROOT / "outputs" / "tracked")
     p.add_argument("--no-save", action="store_true", help="Skip writing annotated video (speed check)")
     p.add_argument("--warmup", type=int, default=10, help="Frames excluded from infer FPS")
@@ -65,6 +71,7 @@ def main() -> None:
         max_age=args.max_age,
         min_hits=args.min_hits,
         track_iou=args.track_iou,
+        coast_frames=args.coast_frames,
         half=args.half,
     )
     stats = pipe.run(

@@ -39,12 +39,32 @@ def test_sort_new_id_for_distant_box():
 
 
 def test_sort_empty_detections_keeps_coasting():
-    tracker = SortTracker(max_age=3, min_hits=1, iou_threshold=0.3)
+    tracker = SortTracker(max_age=5, min_hits=1, iou_threshold=0.3, coast_frames=3)
     tracker.update(np.array([[10, 10, 50, 90, 0.9, 0]], dtype=np.float64))
-    # After update, empty frames should not crash; track may coast briefly then drop
-    for _ in range(2):
-        tracker.update(np.empty((0, 6)))
-    # Eventually expires
+    # Confirmed (min_hits=1): empty frames still emit predicted boxes for coast_frames
+    for _ in range(3):
+        tracks = tracker.update(np.empty((0, 6)))
+        assert len(tracks) == 1
+        assert tracks[0].coasted is True
+    # Past coast_frames but within max_age: alive, not drawn
+    assert tracker.update(np.empty((0, 6))) == []
+    # Eventually expires past max_age
     for _ in range(5):
         tracker.update(np.empty((0, 6)))
     assert tracker.update(np.empty((0, 6))) == []
+
+
+def test_sort_coast_requires_min_hits():
+    tracker = SortTracker(max_age=10, min_hits=3, iou_threshold=0.3, coast_frames=5)
+    # Only one hit — not confirmed; miss should not coast
+    tracker.update(np.array([[10, 10, 50, 90, 0.9, 0]], dtype=np.float64))
+    assert tracker.update(np.empty((0, 6))) == []
+    # Confirm with three matches, then coast
+    tr = SortTracker(max_age=10, min_hits=3, iou_threshold=0.3, coast_frames=5)
+    for t in range(3):
+        x = 10 + 2 * t
+        out = tr.update(np.array([[x, 10, x + 40, 90, 0.9, 0]], dtype=np.float64))
+        assert len(out) == 1
+        assert out[0].coasted is False
+    coasted = tr.update(np.empty((0, 6)))
+    assert len(coasted) == 1 and coasted[0].coasted is True

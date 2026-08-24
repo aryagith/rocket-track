@@ -184,6 +184,7 @@ class TrackResult:
     xyxy: Tuple[float, float, float, float]
     score: float
     class_id: int
+    coasted: bool = False  # True when box is Kalman-predicted (no match this frame)
 
 
 class SortTracker:
@@ -194,10 +195,13 @@ class SortTracker:
         max_age: int = 30,
         min_hits: int = 3,
         iou_threshold: float = 0.3,
+        coast_frames: int = 15,
     ):
         self.max_age = max_age
         self.min_hits = min_hits
         self.iou_threshold = iou_threshold
+        # Emit predicted boxes for this many frames after the last match (≤ max_age).
+        self.coast_frames = max(0, min(int(coast_frames), int(max_age)))
         self.trackers: List[KalmanBoxTracker] = []
         self.frame_count = 0
         KalmanBoxTracker._count = 0
@@ -255,15 +259,26 @@ class SortTracker:
         i = len(self.trackers)
         for trk in reversed(self.trackers):
             d = trk.get_state()
-            if (trk.time_since_update < 1) and (
+            matched = trk.time_since_update < 1
+            # Matched: same gate as classic SORT (hit_streak / early frames).
+            # Coast: only after the track is confirmed (hits), through brief misses.
+            emit_matched = matched and (
                 trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits
-            ):
+            )
+            emit_coast = (
+                (not matched)
+                and self.coast_frames > 0
+                and trk.time_since_update <= self.coast_frames
+                and trk.hits >= self.min_hits
+            )
+            if emit_matched or emit_coast:
                 results.append(
                     TrackResult(
                         track_id=trk.id + 1,  # 1-indexed IDs (SORT convention)
                         xyxy=(float(d[0]), float(d[1]), float(d[2]), float(d[3])),
                         score=trk.score,
                         class_id=trk.class_id,
+                        coasted=emit_coast,
                     )
                 )
             i -= 1

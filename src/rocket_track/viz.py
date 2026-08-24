@@ -27,11 +27,16 @@ def draw_tracks(
     for t in tracks:
         x1, y1, x2, y2 = map(int, t.xyxy)
         color = _color_for_id(t.track_id)
-        cv2.rectangle(out, (x1, y1), (x2, y2), color, thickness)
+        # Dashed-style thinner box for coasted (predicted) tracks
+        box_thickness = 1 if t.coasted else thickness
+        cv2.rectangle(out, (x1, y1), (x2, y2), color, box_thickness)
         label = f"ID {t.track_id}"
         if 0 <= t.class_id < len(names):
             label = f"{names[t.class_id]} {label}"
-        label += f" {t.score:.2f}"
+        if t.coasted:
+            label += " ~"
+        else:
+            label += f" {t.score:.2f}"
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         cv2.rectangle(out, (x1, max(0, y1 - th - 6)), (x1 + tw + 4, y1), color, -1)
         cv2.putText(
