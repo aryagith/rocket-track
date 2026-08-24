@@ -25,3 +25,13 @@ test/images/
 Approx. counts: train 2959 / valid 955 / test 365.
 
 Track / bench / tests work without the full image dump. Retrain needs images (or a private mirror).
+
+## Hard frames for the next train
+
+After a video run, dump detector misses (local only, under `outputs/`):
+
+```bash
+python -m scripts.export_hard_frames --source testing_media/rocket_launch.mov --device cuda --imgsz 640 --conf 0.2
+```
+
+Label those JPEGs, merge into `train/images` + `train/labels`, then `python -m scripts.train` / `train_nano`.

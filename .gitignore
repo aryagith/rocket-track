@@ -29,19 +29,22 @@ _*.py
 outputs/
 !outputs/.gitignore
 
-# Caches
+# Full Roboflow training images (labels kept in git). Never commit dumps.
+train/images/**
+!train/images/README.md
+valid/images/**
+!valid/images/README.md
+test/images/**
+!test/images/README.md
+
+# Ultralytics / YOLO label+image caches
 *.cache
+train/**/*.cache
+valid/**/*.cache
+test/**/*.cache
 train/labels.cache
 valid/labels.cache
 test/labels.cache
-
-# Full Roboflow images (labels kept)
-train/images/*
-!train/images/README.md
-valid/images/*
-!valid/images/README.md
-test/images/*
-!test/images/README.md
 
 # Base YOLO checkpoints + bulky train dumps
 yolov8n.pt

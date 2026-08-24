@@ -1,7 +1,7 @@
-# Fast profile — target ≥60 FPS detect+track on RTX 4060 CUDA
+# Fast profile — speed / default track (lower conf + coast for hit-rate)
 weights: weights/best.pt
 imgsz: 512
-conf: 0.30
+conf: 0.25
 iou: 0.45
 device: auto
 half: true
@@ -10,4 +10,4 @@ sort:
   max_age: 30
   min_hits: 3
   iou_threshold: 0.3
-  coast_frames: 15
+  coast_frames: 25

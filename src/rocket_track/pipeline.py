@@ -99,7 +99,7 @@ class TrackPipeline:
         max_age: int = 30,
         min_hits: int = 3,
         track_iou: float = 0.3,
-        coast_frames: int = 15,
+        coast_frames: int = 25,
         half: Optional[bool] = None,
     ):
         self.tracker_name = tracker.lower()

@@ -195,7 +195,7 @@ class SortTracker:
         max_age: int = 30,
         min_hits: int = 3,
         iou_threshold: float = 0.3,
-        coast_frames: int = 15,
+        coast_frames: int = 25,
     ):
         self.max_age = max_age
         self.min_hits = min_hits

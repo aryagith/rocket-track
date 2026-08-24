@@ -9,8 +9,8 @@ from scripts._paths import ROOT, default_source, default_weights, resolve_device
 from rocket_track.pipeline import TrackPipeline
 
 PROFILES = {
-    "quality": {"imgsz": 640, "conf": 0.25},
-    "fast": {"imgsz": 512, "conf": 0.30},
+    "quality": {"imgsz": 640, "conf": 0.20},
+    "fast": {"imgsz": 512, "conf": 0.25},
     "realtime": {"imgsz": 416, "conf": 0.35},
 }
 
@@ -38,7 +38,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--coast-frames",
         type=int,
-        default=15,
+        default=25,
         help="Draw Kalman-predicted boxes for N frames after a miss (0=classic SORT)",
     )
     p.add_argument("--out", type=Path, default=ROOT / "outputs" / "tracked")

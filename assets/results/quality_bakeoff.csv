@@ -1,0 +1,10 @@
+name,weights,imgsz,conf,coast_frames,min_hits,n_frames,with_tracks,hit_pct,e2e_fps,infer_fps
+fast_c30_coast0,best.pt,512,0.3,0,3,814,239,29.4,31.23,34.86
+fast_c30_coast15,best.pt,512,0.3,15,3,814,528,64.9,33.14,35.75
+fast_c25_coast15,best.pt,512,0.25,15,3,814,613,75.3,33.33,35.92
+fast_c20_coast15,best.pt,512,0.2,15,3,814,665,81.7,31.65,33.9
+fast_c25_coast25,best.pt,512,0.25,25,3,814,668,82.1,39.58,42.52
+quality_c25_coast15,best.pt,640,0.25,15,3,814,627,77.0,44.73,49.17
+quality_c20_coast15,best.pt,640,0.2,15,3,814,688,84.5,43.19,46.43
+quality_c20_coast25,best.pt,640,0.2,25,3,814,737,90.5,39.09,42.26
+quality_c15_coast25,best.pt,640,0.15,25,3,814,768,94.3,37.28,40.7
