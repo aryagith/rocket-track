@@ -48,6 +48,7 @@ Engines are GPU-local (gitignored). Rebuild: `pip install tensorrt==10.3.0 && py
 
 ```bash
 python -m scripts.run_track --source testing_media/rocket_launch.mov --device cuda --profile quality --half --out outputs/tracked
+python -m scripts.run_webcam --device auto
 python -m scripts.quality_bakeoff --device cuda
 python -m scripts.export_hard_frames --source testing_media/rocket_launch.mov --device cuda
 python -m pytest tests -q
@@ -74,6 +75,7 @@ python -m pytest tests -q
 | Command | Role |
 |---------|------|
 | `python -m scripts.run_track` | Detect + SORT (or ByteTrack) |
+| `python -m scripts.run_webcam` | Live webcam preview (phone-test friendly) |
 | `python -m scripts.quality_bakeoff` | Hit-rate bake-off (conf / imgsz / coast) |
 | `python -m scripts.export_hard_frames` | Dump miss frames for labeling / retrain |
 | `python -m scripts.run_bench` | Backend latency table |
