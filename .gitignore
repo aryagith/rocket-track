@@ -18,6 +18,8 @@ build/
 archive.zip
 data.zip
 Rocket Tracking.v1i.yolov8.zip
+Rocket Tracking.v1i.yolov8/
+**/Rocket Tracking.v1i.yolov8/
 *.zip
 _local_runs_detect/
 _local_runs_misc/
