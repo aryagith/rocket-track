@@ -8,9 +8,10 @@ from pathlib import Path
 from scripts._paths import ROOT, default_source, default_weights, resolve_device
 from rocket_track.pipeline import TrackPipeline
 
+# Prefer precision over recall: low conf was lighting up smoke trails as rockets.
 PROFILES = {
-    "quality": {"imgsz": 640, "conf": 0.20},
-    "fast": {"imgsz": 512, "conf": 0.25},
+    "quality": {"imgsz": 640, "conf": 0.30},
+    "fast": {"imgsz": 512, "conf": 0.30},
     "realtime": {"imgsz": 416, "conf": 0.35},
 }
 
@@ -38,8 +39,21 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--coast-frames",
         type=int,
-        default=25,
+        default=15,
         help="Draw Kalman-predicted boxes for N frames after a miss (0=classic SORT)",
+    )
+    p.add_argument(
+        "--max-area-frac",
+        type=float,
+        default=0.04,
+        help="Reject boxes larger than this fraction of the frame (kills smoke-trail FPs)",
+    )
+    p.add_argument("--min-area-frac", type=float, default=0.0)
+    p.add_argument(
+        "--max-det",
+        type=int,
+        default=2,
+        help="Keep at most N boxes after area filter (launch clips usually need 1–2)",
     )
     p.add_argument("--out", type=Path, default=ROOT / "outputs" / "tracked")
     p.add_argument("--no-save", action="store_true", help="Skip writing annotated video (speed check)")
@@ -53,13 +67,15 @@ def main() -> None:
     profile = PROFILES[args.profile]
     imgsz = args.imgsz if args.imgsz is not None else profile["imgsz"]
     conf = args.conf if args.conf is not None else profile["conf"]
-    # Nano is only ~1–3 FPS faster than s on a 4060 and loses track hit-rate; use for realtime only.
     prefer_nano = args.profile == "realtime"
     weights = args.weights if args.weights is not None else default_weights(prefer_nano=prefer_nano)
 
     print(f"source={args.source}")
     print(f"weights={weights}")
-    print(f"device={device}  profile={args.profile}  imgsz={imgsz}  conf={conf}  half={args.half}")
+    print(
+        f"device={device}  profile={args.profile}  imgsz={imgsz}  conf={conf}  half={args.half}  "
+        f"coast={args.coast_frames}  max_area_frac={args.max_area_frac}  max_det={args.max_det}"
+    )
 
     pipe = TrackPipeline(
         weights=weights,
@@ -73,6 +89,9 @@ def main() -> None:
         track_iou=args.track_iou,
         coast_frames=args.coast_frames,
         half=args.half,
+        max_area_frac=args.max_area_frac,
+        min_area_frac=args.min_area_frac,
+        max_det=args.max_det,
     )
     stats = pipe.run(
         args.source,

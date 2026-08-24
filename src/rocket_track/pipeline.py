@@ -99,12 +99,23 @@ class TrackPipeline:
         max_age: int = 30,
         min_hits: int = 3,
         track_iou: float = 0.3,
-        coast_frames: int = 25,
+        coast_frames: int = 15,
         half: Optional[bool] = None,
+        max_area_frac: float = 0.04,
+        min_area_frac: float = 0.0,
+        max_det: int = 3,
     ):
         self.tracker_name = tracker.lower()
         self.detector = YOLODetector(
-            weights, device=device, imgsz=imgsz, conf=conf, iou=iou, half=half
+            weights,
+            device=device,
+            imgsz=imgsz,
+            conf=conf,
+            iou=iou,
+            half=half,
+            max_area_frac=max_area_frac,
+            min_area_frac=min_area_frac,
+            max_det=max_det,
         )
         try:
             self.detector.warmup()

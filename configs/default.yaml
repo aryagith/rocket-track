@@ -3,7 +3,7 @@ weights: weights/best.pt
 onnx: weights/best.onnx
 data: data.yaml
 imgsz: 640
-conf: 0.20
+conf: 0.30
 iou: 0.45
 device: cpu
 tracker: sort
@@ -11,7 +11,7 @@ sort:
   max_age: 30
   min_hits: 3
   iou_threshold: 0.3
-  coast_frames: 25
+  coast_frames: 15
 bench:
   warmup: 30
   max_frames: 120

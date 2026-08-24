@@ -25,6 +25,39 @@ def detections_to_array(dets: Sequence[Detection]) -> np.ndarray:
     return np.asarray(rows, dtype=np.float64)
 
 
+def filter_detections(
+    dets: Sequence[Detection],
+    frame_shape: tuple[int, ...],
+    max_area_frac: float = 0.04,
+    min_area_frac: float = 0.0,
+    max_det: int = 3,
+) -> List[Detection]:
+    """Drop absurd boxes (e.g. smoke trails) and keep top-scoring survivors.
+
+    ``max_area_frac`` rejects boxes covering more than this fraction of the frame —
+    plume/smoke FPs are typically huge vs a real rocket.
+    """
+    if not dets:
+        return []
+    h, w = int(frame_shape[0]), int(frame_shape[1])
+    frame_area = max(float(h * w), 1.0)
+    kept: List[Detection] = []
+    for d in dets:
+        x1, y1, x2, y2 = d.xyxy
+        bw = max(0.0, x2 - x1)
+        bh = max(0.0, y2 - y1)
+        frac = (bw * bh) / frame_area
+        if max_area_frac > 0 and frac > max_area_frac:
+            continue
+        if min_area_frac > 0 and frac < min_area_frac:
+            continue
+        kept.append(d)
+    kept.sort(key=lambda d: d.score, reverse=True)
+    if max_det > 0:
+        kept = kept[:max_det]
+    return kept
+
+
 class YOLODetector:
     """Thin Ultralytics wrapper used by the tracking pipeline."""
 
@@ -36,6 +69,9 @@ class YOLODetector:
         conf: float = 0.25,
         iou: float = 0.45,
         half: Optional[bool] = None,
+        max_area_frac: float = 0.04,
+        min_area_frac: float = 0.0,
+        max_det: int = 3,
     ):
         from ultralytics import YOLO
         import torch
@@ -66,6 +102,9 @@ class YOLODetector:
         if half is None:
             half = str(device) not in {"cpu", "CPU"}
         self.half = bool(half) and str(device) not in {"cpu", "CPU"}
+        self.max_area_frac = float(max_area_frac)
+        self.min_area_frac = float(min_area_frac)
+        self.max_det = int(max_det)
         self._warmed = False
 
     def warmup(self, shape: tuple[int, int, int] = (720, 1280, 3)) -> None:
@@ -85,6 +124,7 @@ class YOLODetector:
             device=self.device,
             half=self.half,
             verbose=False,
+            max_det=max(self.max_det * 5, 10),  # over-fetch; we filter locally
         )
         out: List[Detection] = []
         if not results:
@@ -98,4 +138,10 @@ class YOLODetector:
         for i in range(len(xyxy)):
             x1, y1, x2, y2 = map(float, xyxy[i])
             out.append(Detection(xyxy=(x1, y1, x2, y2), score=float(conf[i]), class_id=int(cls[i])))
-        return out
+        return filter_detections(
+            out,
+            image_bgr.shape,
+            max_area_frac=self.max_area_frac,
+            min_area_frac=self.min_area_frac,
+            max_det=self.max_det,
+        )

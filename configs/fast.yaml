@@ -1,13 +1,15 @@
-# Fast profile — speed / default track (lower conf + coast for hit-rate)
+# Fast profile — precision-first (smoke FPs hurt tracking more than missed frames)
 weights: weights/best.pt
 imgsz: 512
-conf: 0.25
+conf: 0.30
 iou: 0.45
 device: auto
 half: true
 tracker: sort
+max_area_frac: 0.04
+max_det: 2
 sort:
   max_age: 30
   min_hits: 3
   iou_threshold: 0.3
-  coast_frames: 25
+  coast_frames: 15

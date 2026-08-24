@@ -20,25 +20,22 @@ Open `outputs/tracked/rocket_launch_tracked.mp4`.
 
 | Profile | imgsz | conf | Weights | Use |
 |---------|------:|-----:|---------|-----|
-| `fast` (default) | 512 | 0.25 | `best.pt` | Speed + solid hit-rate |
-| `quality` | 640 | 0.20 | `best.pt` | Best recall on launch video |
+| `fast` (default) | 512 | 0.30 | `best.pt` | Recommended track demo |
+| `quality` | 640 | 0.30 | `best.pt` | Higher-res detect, same precision bias |
 | `realtime` | 416 | 0.35 | `best_n.pt` if present | Smaller input / nano |
 
-`--coast-frames` defaults to **25** (Kalman fill through short misses; `0` = classic SORT). FP16 on for GPU.
+`--coast-frames` defaults to **15**. Oversized boxes (smoke trails) are dropped via `--max-area-frac` (default **0.04**); `--max-det` defaults to **2**.
 
-### Track quality — `rocket_launch.mov` (814 frames, `best.pt`, FP16)
+### Track quality — `rocket_launch.mov` (814 frames, `best.pt`)
 
-From `assets/results/quality_bakeoff.csv`:
+Hit-rate alone is misleading once smoke FPs appear — prefer fewer false IDs over max %. Recommended demo: `outputs/compare/02_coast_fast.mp4`.
 
-| Setting | Hit-rate | Infer FPS |
-|---------|---------:|----------:|
-| fast conf0.30 coast**0** | 29.4% | ~35 |
-| fast conf0.30 coast15 | 64.9% | ~36 |
-| **fast conf0.25 coast25** (new default knobs) | **82.1%** | ~43 |
-| **quality conf0.20 coast25** | **90.5%** | ~42 |
-| quality conf0.15 coast25 | 94.3% | ~41 |
+| Setting | Role |
+|---------|------|
+| conf 0.20–0.25 + no size filter | High hit-% but smoke trail FPs / ID chaos |
+| **conf 0.30 + max_area_frac 0.04 + coast 15** | Precision-first (default) |
 
-Demo videos (local): `outputs/compare/` (`01_nocoast` → `02_coast` → `03_quality` → `04_nano`).
+Demo set: `outputs/compare/` (`01_nocoast` → `02_coast_fast` → `03_quality`).
 
 ### Speed — TensorRT (imgsz 512, older coast=0 numbers)
 
@@ -104,7 +101,7 @@ To improve further: label `outputs/hard_frames/` misses, merge into train, retra
 
 ## Tracking
 
-**SORT** + coasting (`--coast-frames`, default 25). Coasted boxes are thinner and labeled `~`. Optional: `--tracker bytetrack`.
+**SORT** + coasting (`--coast-frames`, default 15). Coasted boxes are thinner and labeled `~`. Detector post-filter drops huge boxes (smoke) and caps `--max-det`. Optional: `--tracker bytetrack`.
 
 ## Benchmarks
 
