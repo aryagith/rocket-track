@@ -31,6 +31,9 @@ _*.py
 outputs/
 !outputs/.gitignore
 
+# Working design/plan notes — git holds source and product docs only
+docs/superpowers/
+
 # Full Roboflow training images (labels kept in git). Never commit dumps.
 train/images/**
 !train/images/README.md
