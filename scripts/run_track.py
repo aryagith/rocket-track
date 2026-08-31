@@ -20,7 +20,12 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Detect and track rockets (SORT default).")
     p.add_argument("--source", type=Path, default=default_source(), help="Image, video, or directory")
     p.add_argument("--weights", type=Path, default=None, help="YOLO .pt weights (default: best.pt; nano only for realtime)")
-    p.add_argument("--tracker", choices=["sort", "bytetrack"], default="sort")
+    p.add_argument(
+        "--tracker",
+        choices=["sort", "bytetrack", "lock"],
+        default="sort",
+        help="lock=single-target Kalman lock with control output (one rocket per launch)",
+    )
     p.add_argument("--device", default="auto", help="auto | cpu | 0 | cuda")
     p.add_argument(
         "--profile",
@@ -54,6 +59,26 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=2,
         help="Keep at most N boxes after area filter (launch clips usually need 1–2)",
+    )
+    lock = p.add_argument_group("lock tracker (--tracker lock)")
+    lock.add_argument(
+        "--coast-s",
+        type=float,
+        default=0.25,
+        help="Seconds to keep predicting after the detector stops backing the track",
+    )
+    lock.add_argument("--confirm-hits", type=int, default=3, help="Frames needed before locking")
+    lock.add_argument(
+        "--lead-ms",
+        type=float,
+        default=0.0,
+        help="Predict this far ahead to offset inference and servo lag",
+    )
+    lock.add_argument(
+        "--gate-chi2",
+        type=float,
+        default=9.21,
+        help="Chi-square gate on the centre innovation (2 dof; 9.21 = 99%%)",
     )
     p.add_argument("--out", type=Path, default=ROOT / "outputs" / "tracked")
     p.add_argument("--no-save", action="store_true", help="Skip writing annotated video (speed check)")
@@ -92,6 +117,10 @@ def main() -> None:
         max_area_frac=args.max_area_frac,
         min_area_frac=args.min_area_frac,
         max_det=args.max_det,
+        coast_s=args.coast_s,
+        confirm_hits=args.confirm_hits,
+        lead_s=args.lead_ms / 1000.0,
+        gate_chi2=args.gate_chi2,
     )
     stats = pipe.run(
         args.source,

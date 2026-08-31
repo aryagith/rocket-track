@@ -11,8 +11,9 @@ import cv2
 import numpy as np
 
 from .detect import YOLODetector, detections_to_array
+from .lock_track import LockState, LockTracker
 from .track_sort import SortTracker, TrackResult
-from .viz import draw_tracks
+from .viz import draw_lock_state, draw_tracks
 
 PathLike = Union[str, Path]
 
@@ -104,6 +105,12 @@ class TrackPipeline:
         max_area_frac: float = 0.04,
         min_area_frac: float = 0.0,
         max_det: int = 3,
+        coast_s: float = 0.25,
+        confirm_hits: int = 3,
+        lead_s: float = 0.0,
+        gate_chi2: float = 9.21,
+        size_ratio: Tuple[float, float] = (0.5, 2.0),
+        fps: float = 30.0,
     ):
         self.tracker_name = tracker.lower()
         self.detector = YOLODetector(
@@ -127,6 +134,19 @@ class TrackPipeline:
             iou_threshold=track_iou,
             coast_frames=coast_frames,
         )
+        # Lock tracker needs the frame size, so it is built on the first frame.
+        self.lock_params = dict(
+            coast_s=coast_s,
+            confirm_hits=confirm_hits,
+            lead_s=lead_s,
+            gate_chi2=gate_chi2,
+            size_ratio=size_ratio,
+        )
+        self.fps = float(fps) if fps > 0 else 30.0
+        self._lock: Optional[LockTracker] = None
+        self.last_lock: Optional[LockState] = None
+        self._frame_i = 0
+
         self._bt_model = None
         self._bt_cfg = "bytetrack.yaml"
         if self.tracker_name == "bytetrack":
@@ -137,8 +157,17 @@ class TrackPipeline:
 
     def reset(self) -> None:
         self.sort.reset()
+        if self._lock is not None:
+            self._lock.reset()
+        self.last_lock = None
+        self._frame_i = 0
 
-    def process_frame(self, frame_bgr: np.ndarray) -> List[TrackResult]:
+    def process_frame(
+        self, frame_bgr: np.ndarray, t: Optional[float] = None
+    ) -> List[TrackResult]:
+        if self.tracker_name == "lock":
+            return self._process_lock(frame_bgr, t)
+
         if self.tracker_name == "bytetrack":
             results = self._bt_model.track(
                 source=frame_bgr,
@@ -176,6 +205,33 @@ class TrackPipeline:
         dets = self.detector.predict(frame_bgr)
         return self.sort.update(detections_to_array(dets))
 
+    def _process_lock(
+        self, frame_bgr: np.ndarray, t: Optional[float] = None
+    ) -> List[TrackResult]:
+        if self._lock is None:
+            h, w = frame_bgr.shape[:2]
+            self._lock = LockTracker(frame_size=(w, h), **self.lock_params)
+
+        if t is None:
+            t = self._frame_i / self.fps
+        self._frame_i += 1
+
+        dets = detections_to_array(self.detector.predict(frame_bgr))
+        state = self._lock.update(dets, float(t))
+        self.last_lock = state
+        if not state.has_target:
+            return []
+        # One vehicle, so the ID is a formality kept for the shared draw path.
+        return [
+            TrackResult(
+                track_id=1,
+                xyxy=state.xyxy,
+                score=state.score,
+                class_id=0,
+                coasted=state.coasted,
+            )
+        ]
+
     def run(
         self,
         source: PathLike,
@@ -195,6 +251,7 @@ class TrackPipeline:
         frame_paths: List[Path] = []
         names = list(class_names) if class_names else ["Rocket"]
         video_fps = probe_video_fps(source) if is_video(source) else 30.0
+        self.fps = video_fps
 
         n_frames = 0
         frames_with_tracks = 0
@@ -203,7 +260,7 @@ class TrackPipeline:
 
         for idx, frame in iter_frames(source):
             t_infer0 = time.perf_counter()
-            tracks = self.process_frame(frame)
+            tracks = self.process_frame(frame, t=idx / video_fps)
             # Discard warmup from infer timing only
             if idx >= warmup:
                 infer_elapsed += time.perf_counter() - t_infer0
@@ -215,7 +272,10 @@ class TrackPipeline:
             if not save_video and not is_image(source) and not source.is_dir():
                 continue
 
-            annotated = draw_tracks(frame, tracks, class_names=names)
+            if self.tracker_name == "lock" and self.last_lock is not None:
+                annotated = draw_lock_state(frame, self.last_lock)
+            else:
+                annotated = draw_tracks(frame, tracks, class_names=names)
             if is_image(source) or source.is_dir():
                 if is_image(source):
                     fp = out_dir / f"{safe_stem}_tracked.jpg"
